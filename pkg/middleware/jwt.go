@@ -23,6 +23,17 @@ func JWTProtected() func(*fiber.Ctx) error {
 	return jwtware.New(jwtwareConfig)
 }
 
+func JWTChecked() func(*fiber.Ctx) error {
+	// Create config for JWT authentication middleware.
+	jwtwareConfig := jwtware.Config{
+		SigningKey:   []byte(config.AppCfg().JWTSecretKey),
+		ContextKey:   "user",
+		ErrorHandler: jwtByPass,
+	}
+
+	return jwtware.New(jwtwareConfig)
+}
+
 func verifyTokenExpiration(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
@@ -46,4 +57,8 @@ func jwtError(c *fiber.Ctx, err error) error {
 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 		"msg": err.Error(),
 	})
+}
+
+func jwtByPass(c *fiber.Ctx, err error) error {
+	return c.Next()
 }

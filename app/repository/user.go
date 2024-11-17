@@ -15,6 +15,7 @@ type UserRepository interface {
 	Exists(username, email string) (bool, error)
 	Update(ID int64, user *model.User) error
 	Delete(ID int64) error
+	IsFollowing(user_id int64, follow_user_id int64) (bool, error)
 }
 
 type UserRepo struct {
@@ -98,4 +99,14 @@ func (repo *UserRepo) Delete(ID int64) error {
 	query := `DELETE users WHERE id = ?`
 	_, err := repo.db.Exec(query, ID)
 	return err
+}
+
+func (repo *UserRepo) IsFollowing(user_id int64, follow_user_id int64) (bool, error) {
+	var count int
+	err := repo.db.Get(&count, "SELECT count(*) FROM following WHERE user_id = ? and follow_user_id = ?", user_id, follow_user_id)
+	if count > 0 {
+		return true, err
+	}
+
+	return false, err
 }

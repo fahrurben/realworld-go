@@ -7,7 +7,7 @@ import (
 )
 
 func Protected(app *fiber.App) {
-	api := app.Group("/api/users", middleware.JWTProtected())
-	api.Get("/", controller.GetCurrentUser)
-	api.Put("/", controller.UpdateUser)
+	userApi := app.Group("/api/users", middleware.JWTProtected())
+	userApi.Get("/", controller.GetCurrentUser)
+	userApi.Put("/", controller.UpdateUser)
 }
