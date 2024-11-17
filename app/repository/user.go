@@ -27,7 +27,7 @@ func NewUserRepo(db *database.DB) UserRepository {
 
 func (repo *UserRepo) Create(user *model.User) (int64, error) {
 	query := `INSERT INTO users (username, email, password) VALUES(?, ?, ?)`
-	result, err := repo.db.Exec(query, user.Username, user.Email, user.Username)
+	result, err := repo.db.Exec(query, user.Username, user.Email, user.Password)
 	if err != nil {
 		return 0, err
 	}

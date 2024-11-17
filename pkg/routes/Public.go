@@ -7,4 +7,5 @@ import (
 
 func Public(app *fiber.App) {
 	app.Post("/api/users", controller.Register)
+	app.Post("/api/users/login", controller.Login)
 }
