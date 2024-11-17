@@ -13,7 +13,7 @@ type UserRepository interface {
 	GetByEmail(email string) (*model.User, error)
 	GetByUsername(username string) (*model.User, error)
 	Exists(username, email string) (bool, error)
-	Update(ID int64, user *model.UpdateUser) error
+	Update(ID int64, user *model.User) error
 	Delete(ID int64) error
 }
 
@@ -88,7 +88,7 @@ func (repo *UserRepo) Exists(username, email string) (bool, error) {
 	return exists, err
 }
 
-func (repo *UserRepo) Update(ID int64, user *model.UpdateUser) error {
+func (repo *UserRepo) Update(ID int64, user *model.User) error {
 	query := `UPDATE users SET username=?, password=?, bio=?, image=? WHERE id = ?`
 	_, err := repo.db.Exec(query, user.Username, user.Password, user.Bio, user.Bio, user.Image, ID)
 	return err

@@ -3,8 +3,10 @@ package controller
 import (
 	"github.com/fahrurben/realworld-go/app/model"
 	"github.com/fahrurben/realworld-go/app/repository"
+	"github.com/fahrurben/realworld-go/pkg/validator"
 	"github.com/fahrurben/realworld-go/platform/database"
 	"github.com/gofiber/fiber/v2"
+	"strings"
 )
 
 func Register(c *fiber.Ctx) error {
@@ -13,10 +15,20 @@ func Register(c *fiber.Ctx) error {
 		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
 	}
 
+	// Create a new validator for a Book model.
+	validate := validator.NewValidator()
+	if err := validate.Struct(registerDto.User); err != nil {
+		// Return, if some fields are not valid.
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"msg":    "invalid input found",
+			"errors": validator.ValidatorErrors(err),
+		})
+	}
+
 	hashedPassword, err := GenerateHashedPassword(registerDto.User.Password)
 	user := &model.User{
-		Email:    registerDto.User.Email,
-		Username: registerDto.User.Username,
+		Email:    strings.ToLower(registerDto.User.Email),
+		Username: strings.ToLower(registerDto.User.Username),
 		Password: hashedPassword,
 	}
 	userRepo := repository.NewUserRepo(database.GetDB())
