@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/fahrurben/realworld-go/pkg/config"
+	"github.com/fahrurben/realworld-go/pkg/middleware"
 	"github.com/fahrurben/realworld-go/pkg/routes"
 	"github.com/fahrurben/realworld-go/platform/database"
 	"github.com/fahrurben/realworld-go/platform/logger"
@@ -26,7 +27,12 @@ func Serve() {
 	// Define Fiber config & app.
 	fiberCfg := config.FiberConfig()
 	app := fiber.New(fiberCfg)
+
+	// Attach Middlewares.
+	middleware.FiberMiddleware(app)
+
 	routes.Public(app)
+	routes.Protected(app)
 
 	// signal channel to capture system calls
 	sigCh := make(chan os.Signal, 1)

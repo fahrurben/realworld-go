@@ -6,9 +6,10 @@ import (
 	"github.com/fahrurben/realworld-go/app/repository"
 	"github.com/fahrurben/realworld-go/pkg/config"
 	"github.com/fahrurben/realworld-go/platform/database"
-	"github.com/form3tech-oss/jwt-go"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 func Login(c *fiber.Ctx) error {
@@ -70,6 +71,7 @@ func GenerateAccessToken(user *model.User) (string, error) {
 		jwt.MapClaims{
 			"user_id": user.ID,
 			"email":   user.Email,
+			"exp":     time.Now().Add(time.Minute * time.Duration(config.AppCfg().JWTSecretExpireMinutesCount)).Unix(),
 		},
 	)
 	s, err := t.SignedString([]byte(config.AppCfg().JWTSecretKey))
