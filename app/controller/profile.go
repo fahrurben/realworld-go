@@ -35,3 +35,73 @@ func GetProfile(c *fiber.Ctx) error {
 		"following": isFollowing,
 	}})
 }
+
+func FollowUser(c *fiber.Ctx) error {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	user_id := int64(claims["user_id"].(float64))
+
+	username := c.Params("username")
+	userRepo := repository.NewUserRepo(database.GetDB())
+
+	user, err := userRepo.GetByUsername(username)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	isFollowing, err := userRepo.IsFollowing(user_id, user.ID)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	if isFollowing == false {
+		err = userRepo.Follow(user_id, user.ID)
+		isFollowing = true
+	}
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	return c.JSON(fiber.Map{"profile": fiber.Map{
+		"username":  user.Username,
+		"bio":       user.Bio,
+		"image":     user.Image,
+		"following": isFollowing,
+	}})
+}
+
+func UnfollowUser(c *fiber.Ctx) error {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	user_id := int64(claims["user_id"].(float64))
+
+	username := c.Params("username")
+	userRepo := repository.NewUserRepo(database.GetDB())
+
+	user, err := userRepo.GetByUsername(username)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	isFollowing, err := userRepo.IsFollowing(user_id, user.ID)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	if isFollowing == true {
+		err = userRepo.Unfollow(user_id, user.ID)
+		isFollowing = false
+	}
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	return c.JSON(fiber.Map{"profile": fiber.Map{
+		"username":  user.Username,
+		"bio":       user.Bio,
+		"image":     user.Image,
+		"following": isFollowing,
+	}})
+}

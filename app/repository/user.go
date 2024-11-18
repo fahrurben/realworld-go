@@ -16,6 +16,8 @@ type UserRepository interface {
 	Update(ID int64, user *model.User) error
 	Delete(ID int64) error
 	IsFollowing(user_id int64, follow_user_id int64) (bool, error)
+	Follow(user_id int64, follow_user_id int64) error
+	Unfollow(user_id int64, follow_user_id int64) error
 }
 
 type UserRepo struct {
@@ -109,4 +111,16 @@ func (repo *UserRepo) IsFollowing(user_id int64, follow_user_id int64) (bool, er
 	}
 
 	return false, err
+}
+
+func (repo *UserRepo) Follow(user_id int64, follow_user_id int64) error {
+	query := "INSERT INTO following (user_id, follow_user_id) VALUES(?, ?)"
+	_, err := repo.db.Exec(query, user_id, follow_user_id)
+	return err
+}
+
+func (repo *UserRepo) Unfollow(user_id int64, follow_user_id int64) error {
+	query := `DELETE FROM following WHERE user_id = ? and follow_user_id = ?`
+	_, err := repo.db.Exec(query, user_id, follow_user_id)
+	return err
 }

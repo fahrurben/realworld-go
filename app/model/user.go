@@ -12,7 +12,7 @@ type User struct {
 func NewUser() *User { return &User{} }
 
 type RegisterUser struct {
-	Username string `json:"username" validate:"lte=255,gte=5,alpha"`
+	Username string `json:"username" validate:"lte=255,gte=5,alphanum"`
 	Email    string `json:"email" validate:"lte=255,email"`
 	Password string `json:"password" validate:"lte=100"`
 }
@@ -31,7 +31,7 @@ type LoginDTO struct {
 }
 
 type UpdateUser struct {
-	Username string `json:"username" validate:"lte=255,gte=5,alpha"`
+	Username string `json:"username" validate:"lte=255,gte=5,alphanum"`
 	Password string `json:"password" validate:"lte=100"`
 	Bio      string `json:"bio" validate:"lte=255"`
 	Image    string `json:"image"`
