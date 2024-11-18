@@ -15,4 +15,6 @@ func Protected(app *fiber.App) {
 	followApi.Post("/", controller.FollowUser)
 	followApi.Delete("/", controller.UnfollowUser)
 
+	articleApi := app.Group("/api/articles", middleware.JWTProtected())
+	articleApi.Post("/", controller.CreateArticle)
 }

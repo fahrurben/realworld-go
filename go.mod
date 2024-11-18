@@ -24,6 +24,8 @@ require (
 	github.com/gofiber/jwt/v2 v2.2.7 // indirect
 	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
+	github.com/gosimple/slug v1.14.0 // indirect
+	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

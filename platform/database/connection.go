@@ -15,7 +15,7 @@ var defaultDB = &DB{}
 
 // connect sets the db client of database using configuration
 func (db *DB) connect(cfg *config.DB) (err error) {
-	dbURI := fmt.Sprintf("%s:%s@(%s:%d)/%s",
+	dbURI := fmt.Sprintf("%s:%s@(%s:%d)/%s?parseTime=true",
 		cfg.User,
 		cfg.Password,
 		cfg.Host,

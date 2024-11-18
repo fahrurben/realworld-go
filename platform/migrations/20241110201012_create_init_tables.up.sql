@@ -17,3 +17,31 @@ CREATE TABLE `following`
 )
 
 CREATE INDEX idx_following ON following (user_id, follow_user_id)
+
+CREATE TABLE article (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    author_id BIGINT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    description VARCHAR(1000) NOT NULL,
+    body TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT now(),
+    updated_at DATETIME,
+    PRIMARY KEY (id),
+    FOREIGN KEY (author_id) REFERENCES users(id)
+)
+
+CREATE TABLE tag (
+    name VARCHAR(255) NOT NULL,
+    PRIMARY KEY (name)
+)
+
+CREATE TABLE article_tags
+(
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    article_id     BIGINT NOT NULL,
+    tag_name VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (article_id) REFERENCES article(id)
+)
+
