@@ -8,6 +8,8 @@ import (
 type ArticleRepository interface {
 	Create(article *model.Article) (int64, error)
 	Get(ID int64) (*model.Article, error)
+	GetBySlug(slug string) (*model.Article, error)
+	GetArticleTags(article_id int64) ([]string, error)
 	Update(ID int64, article *model.Article) error
 	Delete(ID int64) error
 }
@@ -35,6 +37,22 @@ func (repo ArticleRepo) Get(ID int64) (*model.Article, error) {
 	err := repo.db.Get(&article, query, ID)
 
 	return &article, err
+}
+
+func (repo ArticleRepo) GetBySlug(slug string) (*model.Article, error) {
+	article := model.Article{}
+	query := `SELECT * FROM article WHERE slug = ?`
+	err := repo.db.Get(&article, query, slug)
+
+	return &article, err
+}
+
+func (repo ArticleRepo) GetArticleTags(article_id int64) ([]string, error) {
+	var tags []string
+	query := `SELECT tag_name FROM article_tags WHERE article_id = ?`
+	err := repo.db.Select(&tags, query, article_id)
+
+	return tags, err
 }
 
 func (repo ArticleRepo) Update(ID int64, article *model.Article) error {

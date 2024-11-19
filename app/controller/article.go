@@ -71,5 +71,52 @@ func CreateArticle(c *fiber.Ctx) error {
 		Following: false,
 	}
 
-	return c.JSON(created)
+	return c.JSON(fiber.Map{"article": created})
+}
+
+func GetArticle(c *fiber.Ctx) error {
+	var user_id int64 = 0
+	if token := c.Locals("user"); token != nil {
+		token := c.Locals("user").(*jwt.Token)
+		claims := token.Claims.(jwt.MapClaims)
+		user_id = int64(claims["user_id"].(float64))
+	}
+	article_slug := c.Params("slug")
+
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	article, err := articleRepo.GetBySlug(article_slug)
+
+	if err != nil && err == sql.ErrNoRows {
+		return CreateErrorResponse(c, fiber.StatusNotFound, "Article not found")
+	} else {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	userRepo := repository.NewUserRepo(database.GetDB())
+	author, err := userRepo.Get(article.AuthorID)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	tags, err := articleRepo.GetArticleTags(article.ID)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	isFollowing := false
+	if user_id > 0 {
+		isFollowing, _ = userRepo.IsFollowing(user_id, article.AuthorID)
+	}
+
+	article.Tags = tags
+	article.Author = &model.Author{
+		Username:  author.Username,
+		Bio:       author.Bio,
+		Image:     author.Image,
+		Following: isFollowing,
+	}
+
+	return c.JSON(fiber.Map{"article": article})
 }
