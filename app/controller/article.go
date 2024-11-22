@@ -7,6 +7,7 @@ import (
 	"github.com/fahrurben/realworld-go/platform/database"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/gookit/goutil/arrutil"
 	"github.com/gosimple/slug"
 )
 
@@ -15,7 +16,7 @@ func CreateArticle(c *fiber.Ctx) error {
 	claims := token.Claims.(jwt.MapClaims)
 	user_id := int64(claims["user_id"].(float64))
 
-	createArticleDto := &model.CreateArticleDto{}
+	createArticleDto := &model.SaveArticleDto{}
 	if err := c.BodyParser(createArticleDto); err != nil {
 		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
 	}
@@ -30,6 +31,13 @@ func CreateArticle(c *fiber.Ctx) error {
 	}
 	tagList := articleDto.TagList
 
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	id, err := articleRepo.Create(article)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
 	tagRepo := repository.NewTagRepo(database.GetDB())
 
 	for _, tag := range tagList {
@@ -39,15 +47,18 @@ func CreateArticle(c *fiber.Ctx) error {
 		}
 
 		if existingTag == nil {
-			tagRepo.Create(tag)
+			_, err := tagRepo.Create(tag)
+			if err != nil {
+				return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+			}
 		}
 	}
 
-	articleRepo := repository.NewArticleRepo(database.GetDB())
-	id, err := articleRepo.Create(article)
-
-	if err != nil {
-		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	for _, tagName := range tagList {
+		_, err := articleRepo.CreateArticleTag(id, tagName)
+		if err != nil {
+			return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+		}
 	}
 
 	created, err := articleRepo.Get(id)
@@ -86,10 +97,12 @@ func GetArticle(c *fiber.Ctx) error {
 	articleRepo := repository.NewArticleRepo(database.GetDB())
 	article, err := articleRepo.GetBySlug(article_slug)
 
-	if err != nil && err == sql.ErrNoRows {
-		return CreateErrorResponse(c, fiber.StatusNotFound, "Article not found")
-	} else {
-		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return CreateErrorResponse(c, fiber.StatusNotFound, "Article not found")
+		} else {
+			return CreateErrorResponse(c, fiber.StatusNotFound, err.Error())
+		}
 	}
 
 	userRepo := repository.NewUserRepo(database.GetDB())
@@ -116,6 +129,100 @@ func GetArticle(c *fiber.Ctx) error {
 		Bio:       author.Bio,
 		Image:     author.Image,
 		Following: isFollowing,
+	}
+
+	return c.JSON(fiber.Map{"article": article})
+}
+
+func UpdateArticle(c *fiber.Ctx) error {
+	var user_id int64 = 0
+	if token := c.Locals("user"); token != nil {
+		token := c.Locals("user").(*jwt.Token)
+		claims := token.Claims.(jwt.MapClaims)
+		user_id = int64(claims["user_id"].(float64))
+	} else {
+		return CreateErrorResponse(c, fiber.StatusUnauthorized, "Unauthorized")
+	}
+	article_slug := c.Params("slug")
+
+	updateArticleDto := &model.SaveArticleDto{}
+	if err := c.BodyParser(updateArticleDto); err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+	articleDto := updateArticleDto.Article
+
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	article, err := articleRepo.GetBySlug(article_slug)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	article.Title = articleDto.Title
+	article.Slug = slug.Make(articleDto.Title)
+	article.Description = articleDto.Description
+	article.Body = articleDto.Body
+
+	err = articleRepo.Update(article.ID, article)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	tagList := articleDto.TagList
+
+	tagRepo := repository.NewTagRepo(database.GetDB())
+
+	articleTags, err := articleRepo.GetArticleTags(article.ID)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	for _, tag := range tagList {
+		existingTag, err := tagRepo.Get(tag)
+		if err != nil && err == sql.ErrNoRows {
+			existingTag = nil
+		}
+
+		if existingTag == nil {
+			_, err := tagRepo.Create(tag)
+			if err != nil {
+				return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+			}
+		}
+	}
+
+	for _, tagName := range tagList {
+		if !arrutil.SliceHas(articleTags, tagName) {
+			_, err := articleRepo.CreateArticleTag(article.ID, tagName)
+			if err != nil {
+				return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+			}
+		}
+	}
+
+	for _, tagName := range articleTags {
+		if !arrutil.SliceHas(tagList, tagName) {
+			err := articleRepo.DeleteArticleTag(article.ID, tagName)
+			if err != nil {
+				return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+			}
+		}
+	}
+
+	userRepo := repository.NewUserRepo(database.GetDB())
+	author, err := userRepo.Get(user_id)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	article.Tags = tagList
+	article.Author = &model.Author{
+		Username:  author.Username,
+		Bio:       author.Bio,
+		Image:     author.Image,
+		Following: false,
 	}
 
 	return c.JSON(fiber.Map{"article": article})

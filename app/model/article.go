@@ -24,7 +24,7 @@ type Article struct {
 
 func NewArticle() *Article { return &Article{} }
 
-type CreateArticle struct {
+type ArticleDTO struct {
 	AuthorID    string   `json:"author_id" validate:"required,number"`
 	Title       string   `json:"title" validate:"required,lte=255"`
 	Description string   `json:"description" validate:"required,lte=1000"`
@@ -32,6 +32,6 @@ type CreateArticle struct {
 	TagList     []string `json:"tagList"`
 }
 
-type CreateArticleDto struct {
-	Article CreateArticle `json:"article"`
+type SaveArticleDto struct {
+	Article ArticleDTO `json:"article"`
 }

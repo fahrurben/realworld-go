@@ -15,4 +15,5 @@ func Public(app *fiber.App) {
 
 	articleDetailsApi := app.Group("/api/articles/:slug", middleware.JWTChecked())
 	articleDetailsApi.Get("/", controller.GetArticle)
+	articleDetailsApi.Patch("/", controller.UpdateArticle)
 }
