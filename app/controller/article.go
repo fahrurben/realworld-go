@@ -227,3 +227,44 @@ func UpdateArticle(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"article": article})
 }
+
+func DeleteArticle(c *fiber.Ctx) error {
+	var user_id int64 = 0
+	if token := c.Locals("user"); token != nil {
+		token := c.Locals("user").(*jwt.Token)
+		claims := token.Claims.(jwt.MapClaims)
+		user_id = int64(claims["user_id"].(float64))
+	} else {
+		return CreateErrorResponse(c, fiber.StatusUnauthorized, "Unauthorized")
+	}
+	article_slug := c.Params("slug")
+
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	article, err := articleRepo.GetBySlug(article_slug)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	if article.AuthorID != user_id {
+		return CreateErrorResponse(c, fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	articleTags, err := articleRepo.GetArticleTags(article.ID)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	for _, tagName := range articleTags {
+		err := articleRepo.DeleteArticleTag(article.ID, tagName)
+		if err != nil {
+			return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+		}
+	}
+
+	err = articleRepo.Delete(article.ID)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	return c.Status(fiber.StatusOK).JSON(nil)
+}

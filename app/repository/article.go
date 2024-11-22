@@ -64,7 +64,7 @@ func (repo ArticleRepo) Update(ID int64, article *model.Article) error {
 }
 
 func (repo ArticleRepo) Delete(ID int64) error {
-	query := `DELETE tag WHERE id = ?`
+	query := `DELETE FROM article WHERE id = ?`
 	_, err := repo.db.Exec(query, ID)
 	return err
 }
