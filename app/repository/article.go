@@ -7,13 +7,15 @@ import (
 
 type ArticleRepository interface {
 	Create(article *model.Article) (int64, error)
-	Get(ID int64) (*model.Article, error)
-	GetBySlug(slug string) (*model.Article, error)
-	GetArticleTags(article_id int64) ([]string, error)
-	CreateArticleTag(article_id int64, tag string) (int64, error)
-	DeleteArticleTag(article_id int64, tag string) error
+	Get(ID int64, userId *int64) (*model.Article, error)
+	GetBySlug(slug string, userId *int64) (*model.Article, error)
+	GetArticleTags(articleId int64) ([]string, error)
+	CreateArticleTag(articleId int64, tag string) (int64, error)
+	DeleteArticleTag(articleId int64, tag string) error
 	Update(ID int64, article *model.Article) error
 	Delete(ID int64) error
+	Favorited(articleId int64, userId int64) error
+	Unfavorited(articleId int64, userId int64) error
 }
 
 type ArticleRepo struct {
@@ -33,18 +35,32 @@ func (repo ArticleRepo) Create(article *model.Article) (int64, error) {
 	return id, err
 }
 
-func (repo ArticleRepo) Get(ID int64) (*model.Article, error) {
+func (repo ArticleRepo) Get(ID int64, userId *int64) (*model.Article, error) {
 	article := model.Article{}
-	query := `SELECT * FROM article WHERE id = ?`
-	err := repo.db.Get(&article, query, ID)
+	query := `
+		SELECT 
+			article.*,
+			(SELECT COUNT(id) FROM favorites_article WHERE favorites_article.article_id = article.id) AS favorites_count,
+			(SELECT IF(COUNT(id) > 0, TRUE, FALSE) FROM favorites_article WHERE favorites_article.article_id = article.id and favorites_article.user_id = ?) AS favorited
+		FROM article 
+		WHERE article.id = ?;
+	`
+	err := repo.db.Get(&article, query, userId, ID)
 
 	return &article, err
 }
 
-func (repo ArticleRepo) GetBySlug(slug string) (*model.Article, error) {
+func (repo ArticleRepo) GetBySlug(slug string, userId *int64) (*model.Article, error) {
 	article := model.Article{}
-	query := `SELECT * FROM article WHERE slug = ?`
-	err := repo.db.Get(&article, query, slug)
+	query := `
+		SELECT 
+			article.*,
+			(SELECT COUNT(id) FROM favorites_article WHERE favorites_article.article_id = article.id) AS favorites_count,
+			(SELECT IF(COUNT(id) > 0, TRUE, FALSE) FROM favorites_article WHERE favorites_article.article_id = article.id and favorites_article.user_id = ?) AS favorited
+		FROM article 
+		WHERE article.slug = ?;
+	`
+	err := repo.db.Get(&article, query, userId, slug)
 
 	return &article, err
 }
@@ -83,5 +99,17 @@ func (repo ArticleRepo) CreateArticleTag(article_id int64, tag string) (int64, e
 func (repo ArticleRepo) DeleteArticleTag(article_id int64, tag string) error {
 	query := `DELETE FROM article_tags WHERE article_id = ? and tag_name = ?`
 	_, err := repo.db.Exec(query, article_id, tag)
+	return err
+}
+
+func (repo ArticleRepo) Favorited(articleId int64, userId int64) error {
+	query := `INSERT INTO favorites_article (article_id, user_id) VALUES(?, ?)`
+	_, err := repo.db.Exec(query, articleId, userId)
+	return err
+}
+
+func (repo ArticleRepo) Unfavorited(articleId int64, userId int64) error {
+	query := `DELETE FROM favorites_article WHERE article_id = ? and user_id = ?`
+	_, err := repo.db.Exec(query, articleId, userId)
 	return err
 }

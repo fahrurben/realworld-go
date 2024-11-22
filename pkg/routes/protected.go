@@ -17,4 +17,8 @@ func Protected(app *fiber.App) {
 
 	articleApi := app.Group("/api/articles", middleware.JWTProtected())
 	articleApi.Post("/", controller.CreateArticle)
+
+	favoriteArticleApi := app.Group("/api/articles/:slug/favorite", middleware.JWTChecked())
+	favoriteArticleApi.Post("/", controller.FavoriteArticle)
+	favoriteArticleApi.Delete("/", controller.UnfavoriteArticle)
 }

@@ -10,16 +10,18 @@ type Author struct {
 }
 
 type Article struct {
-	ID          int64      `db:"id" json:"id"`
-	AuthorID    int64      `db:"author_id" json:"author_id"`
-	Title       string     `db:"title" json:"title"`
-	Slug        string     `db:"slug" json:"slug"`
-	Description string     `db:"description" json:"description"`
-	Body        string     `db:"body" json:"body"`
-	CreatedAt   time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt   *time.Time `db:"updated_at" json:"updated_at"`
-	Author      *Author    `json:"author"`
-	Tags        []string   `json:"tagList"`
+	ID             int64      `db:"id" json:"id"`
+	AuthorID       int64      `db:"author_id" json:"author_id"`
+	Title          string     `db:"title" json:"title"`
+	Slug           string     `db:"slug" json:"slug"`
+	Description    string     `db:"description" json:"description"`
+	Body           string     `db:"body" json:"body"`
+	CreatedAt      time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt      *time.Time `db:"updated_at" json:"updated_at"`
+	Author         *Author    `json:"author"`
+	Tags           []string   `json:"tagList"`
+	Favorited      bool       `db:"favorited" json:"favorited"`
+	FavoritesCount int64      `db:"favorites_count" json:"favoritesCount"`
 }
 
 func NewArticle() *Article { return &Article{} }

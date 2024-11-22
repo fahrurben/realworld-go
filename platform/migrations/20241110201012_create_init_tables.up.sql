@@ -45,3 +45,13 @@ CREATE TABLE article_tags
     FOREIGN KEY (article_id) REFERENCES article(id)
 )
 
+
+CREATE TABLE `favorites_article`
+(
+    id         BIGINT NOT NULL AUTO_INCREMENT,
+    article_id BIGINT NOT NULL,
+    user_id    BIGINT NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (article_id) REFERENCES article (id),
+    FOREIGN KEY (user_id) REFERENCES users (id)
+)

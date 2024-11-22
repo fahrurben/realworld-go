@@ -61,7 +61,7 @@ func CreateArticle(c *fiber.Ctx) error {
 		}
 	}
 
-	created, err := articleRepo.Get(id)
+	created, err := articleRepo.Get(id, &user_id)
 
 	if err != nil {
 		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
@@ -95,7 +95,7 @@ func GetArticle(c *fiber.Ctx) error {
 	article_slug := c.Params("slug")
 
 	articleRepo := repository.NewArticleRepo(database.GetDB())
-	article, err := articleRepo.GetBySlug(article_slug)
+	article, err := articleRepo.GetBySlug(article_slug, &user_id)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -152,7 +152,7 @@ func UpdateArticle(c *fiber.Ctx) error {
 	articleDto := updateArticleDto.Article
 
 	articleRepo := repository.NewArticleRepo(database.GetDB())
-	article, err := articleRepo.GetBySlug(article_slug)
+	article, err := articleRepo.GetBySlug(article_slug, &user_id)
 
 	if err != nil {
 		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
@@ -217,12 +217,17 @@ func UpdateArticle(c *fiber.Ctx) error {
 		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
 	}
 
+	isFollowing := false
+	if user_id > 0 {
+		isFollowing, _ = userRepo.IsFollowing(user_id, article.AuthorID)
+	}
+
 	article.Tags = tagList
 	article.Author = &model.Author{
 		Username:  author.Username,
 		Bio:       author.Bio,
 		Image:     author.Image,
-		Following: false,
+		Following: isFollowing,
 	}
 
 	return c.JSON(fiber.Map{"article": article})
@@ -240,7 +245,7 @@ func DeleteArticle(c *fiber.Ctx) error {
 	article_slug := c.Params("slug")
 
 	articleRepo := repository.NewArticleRepo(database.GetDB())
-	article, err := articleRepo.GetBySlug(article_slug)
+	article, err := articleRepo.GetBySlug(article_slug, &user_id)
 	if err != nil {
 		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
 	}
@@ -267,4 +272,112 @@ func DeleteArticle(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(nil)
+}
+
+func FavoriteArticle(c *fiber.Ctx) error {
+	var user_id int64 = 0
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	user_id = int64(claims["user_id"].(float64))
+
+	article_slug := c.Params("slug")
+
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	article, err := articleRepo.GetBySlug(article_slug, &user_id)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	if !article.Favorited {
+		err = articleRepo.Favorited(article.ID, user_id)
+		if err != nil {
+			return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+		}
+	}
+
+	article, err = articleRepo.GetBySlug(article_slug, &user_id)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	userRepo := repository.NewUserRepo(database.GetDB())
+	author, err := userRepo.Get(user_id)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	articleTags, err := articleRepo.GetArticleTags(article.ID)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	isFollowing := false
+	if user_id > 0 {
+		isFollowing, _ = userRepo.IsFollowing(user_id, article.AuthorID)
+	}
+
+	article.Tags = articleTags
+	article.Author = &model.Author{
+		Username:  author.Username,
+		Bio:       author.Bio,
+		Image:     author.Image,
+		Following: isFollowing,
+	}
+
+	return c.JSON(fiber.Map{"article": article})
+}
+
+func UnfavoriteArticle(c *fiber.Ctx) error {
+	var user_id int64 = 0
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	user_id = int64(claims["user_id"].(float64))
+
+	article_slug := c.Params("slug")
+
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	article, err := articleRepo.GetBySlug(article_slug, &user_id)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	if article.Favorited {
+		err = articleRepo.Unfavorited(article.ID, user_id)
+		if err != nil {
+			return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+		}
+	}
+
+	article, err = articleRepo.GetBySlug(article_slug, &user_id)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	userRepo := repository.NewUserRepo(database.GetDB())
+	author, err := userRepo.Get(user_id)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	articleTags, err := articleRepo.GetArticleTags(article.ID)
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	isFollowing := false
+	if user_id > 0 {
+		isFollowing, _ = userRepo.IsFollowing(user_id, article.AuthorID)
+	}
+
+	article.Tags = articleTags
+	article.Author = &model.Author{
+		Username:  author.Username,
+		Bio:       author.Bio,
+		Image:     author.Image,
+		Following: isFollowing,
+	}
+
+	return c.JSON(fiber.Map{"article": article})
 }
