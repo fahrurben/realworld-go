@@ -15,8 +15,9 @@ func Protected(app *fiber.App) {
 	followApi.Post("/", controller.FollowUser)
 	followApi.Delete("/", controller.UnfollowUser)
 
-	articleApi := app.Group("/api/articles", middleware.JWTProtected())
+	articleApi := app.Group("/api/articles", middleware.JWTChecked())
 	articleApi.Post("/", controller.CreateArticle)
+	articleApi.Get("/", controller.ListArticle)
 
 	favoriteArticleApi := app.Group("/api/articles/:slug/favorite", middleware.JWTChecked())
 	favoriteArticleApi.Post("/", controller.FavoriteArticle)

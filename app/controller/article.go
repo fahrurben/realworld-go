@@ -9,12 +9,18 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gookit/goutil/arrutil"
 	"github.com/gosimple/slug"
+	"strconv"
 )
 
 func CreateArticle(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims := token.Claims.(jwt.MapClaims)
-	user_id := int64(claims["user_id"].(float64))
+	var user_id int64 = 0
+	if token := c.Locals("user"); token != nil {
+		token := c.Locals("user").(*jwt.Token)
+		claims := token.Claims.(jwt.MapClaims)
+		user_id = int64(claims["user_id"].(float64))
+	} else {
+		return CreateErrorResponse(c, fiber.StatusUnauthorized, "Unauthorized")
+	}
 
 	createArticleDto := &model.SaveArticleDto{}
 	if err := c.BodyParser(createArticleDto); err != nil {
@@ -380,4 +386,53 @@ func UnfavoriteArticle(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"article": article})
+}
+
+func ListArticle(c *fiber.Ctx) error {
+	var user_id int64 = 0
+	if token := c.Locals("user"); token != nil {
+		token := c.Locals("user").(*jwt.Token)
+		claims := token.Claims.(jwt.MapClaims)
+		user_id = int64(claims["user_id"].(float64))
+	}
+
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	offset, err := strconv.Atoi(c.Query("offset", "0"))
+
+	tag := c.Query("tag")
+	author := c.Query("author")
+	favorited := c.Query("favorited")
+
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	articles, articleCount, err := articleRepo.List(int64(limit), int64(offset), &tag, &author, &favorited)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	userRepo := repository.NewUserRepo(database.GetDB())
+
+	for _, article := range articles {
+		author, err := userRepo.Get(user_id)
+
+		articleTags, err := articleRepo.GetArticleTags(article.ID)
+		if err != nil {
+			return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+		}
+
+		isFollowing := false
+		if user_id > 0 {
+			isFollowing, _ = userRepo.IsFollowing(user_id, article.AuthorID)
+		}
+
+		article.Tags = articleTags
+		article.Author = &model.Author{
+			Username:  author.Username,
+			Bio:       author.Bio,
+			Image:     author.Image,
+			Following: isFollowing,
+		}
+	}
+
+	return c.JSON(fiber.Map{"articles": articles, "articlesCount": articleCount})
 }

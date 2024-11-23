@@ -16,6 +16,7 @@ type ArticleRepository interface {
 	Delete(ID int64) error
 	Favorited(articleId int64, userId int64) error
 	Unfavorited(articleId int64, userId int64) error
+	List(limit int64, offset int64, tag *string, author *string, favorited *string) ([]*model.Article, int64, error)
 }
 
 type ArticleRepo struct {
@@ -112,4 +113,71 @@ func (repo ArticleRepo) Unfavorited(articleId int64, userId int64) error {
 	query := `DELETE FROM favorites_article WHERE article_id = ? and user_id = ?`
 	_, err := repo.db.Exec(query, articleId, userId)
 	return err
+}
+
+func (repo ArticleRepo) List(limit int64, offset int64, tag *string, author *string, favorited *string) ([]*model.Article, int64, error) {
+	var count int64 = 0
+	var articles []*model.Article
+	params := make(map[string]any)
+	params["limit"] = limit
+	params["offset"] = offset
+
+	queryCount := `
+		SELECT 
+			COUNT(article.id)
+		FROM article
+		LEFT JOIN users au ON article.author_id = au.id
+		LEFT JOIN favorites_article fa ON fa.article_id = article.id
+		LEFT JOIN users fau ON fa.user_id = fau.id
+		LEFT JOIN article_tags ats ON ats.article_id = article.id 
+		WHERE 1=1
+	`
+
+	query := `
+		SELECT 
+		    DISTINCT article.id,
+			article.*
+		FROM article
+		LEFT JOIN users au ON article.author_id = au.id
+		LEFT JOIN favorites_article fa ON fa.article_id = article.id
+		LEFT JOIN users fau ON fa.user_id = fau.id
+		LEFT JOIN article_tags ats ON ats.article_id = article.id 
+		WHERE 1=1
+	`
+
+	if tag != nil && *tag != "" {
+		query += " AND ats.tag_name = :tag"
+		queryCount += " AND ats.tag_name = :tag"
+		params["tag"] = *tag
+	}
+	if author != nil && *author != "" {
+		query += " AND au.username = :author"
+		queryCount += " AND au.username = :author"
+		params["author"] = *author
+	}
+	if favorited != nil && *favorited != "" {
+		query += " AND fau.username = :favorited"
+		queryCount += " AND fau.username = :favorited"
+		params["favorited"] = *favorited
+	}
+
+	query += " ORDER BY article.created_at DESC LIMIT :limit OFFSET :offset"
+
+	statementTotal, err := repo.db.PrepareNamed(queryCount)
+	if err != nil {
+		return nil, 0, err
+	}
+	err = statementTotal.Get(&count, params)
+
+	statement, err := repo.db.PrepareNamed(query)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = statement.Select(&articles, params)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return articles, count, err
 }
