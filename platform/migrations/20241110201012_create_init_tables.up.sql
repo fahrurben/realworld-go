@@ -55,3 +55,14 @@ CREATE TABLE `favorites_article`
     FOREIGN KEY (article_id) REFERENCES article (id),
     FOREIGN KEY (user_id) REFERENCES users (id)
 )
+
+CREATE TABLE comment (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    article_id BIGINT NOT NULL,
+    author_id BIGINT NOT NULL,
+    body TEXT(1000) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT now(),
+    updated_at DATETIME,
+    PRIMARY KEY (id),
+    FOREIGN KEY (author_id) REFERENCES users(id)
+)

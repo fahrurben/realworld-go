@@ -28,7 +28,7 @@ type ArticleRepo struct {
 
 func NewArticleRepo(db *database.DB) ArticleRepository { return &ArticleRepo{db: db} }
 
-func (repo ArticleRepo) Create(article *model.Article) (int64, error) {
+func (repo *ArticleRepo) Create(article *model.Article) (int64, error) {
 	query := `INSERT INTO article (author_id, title, slug, description, body) VALUES(?, ?, ?, ?, ?)`
 	result, err := repo.db.Exec(query, article.AuthorID, article.Title, article.Slug, article.Description, article.Body)
 	if err != nil {
@@ -39,7 +39,7 @@ func (repo ArticleRepo) Create(article *model.Article) (int64, error) {
 	return id, err
 }
 
-func (repo ArticleRepo) Get(ID int64, userId *int64) (*model.Article, error) {
+func (repo *ArticleRepo) Get(ID int64, userId *int64) (*model.Article, error) {
 	article := model.Article{}
 	query := `
 		SELECT 
@@ -54,7 +54,7 @@ func (repo ArticleRepo) Get(ID int64, userId *int64) (*model.Article, error) {
 	return &article, err
 }
 
-func (repo ArticleRepo) GetBySlug(slug string, userId *int64) (*model.Article, error) {
+func (repo *ArticleRepo) GetBySlug(slug string, userId *int64) (*model.Article, error) {
 	article := model.Article{}
 	query := `
 		SELECT 
@@ -69,7 +69,7 @@ func (repo ArticleRepo) GetBySlug(slug string, userId *int64) (*model.Article, e
 	return &article, err
 }
 
-func (repo ArticleRepo) GetArticleTags(article_id int64) ([]string, error) {
+func (repo *ArticleRepo) GetArticleTags(article_id int64) ([]string, error) {
 	var tags []string
 	query := `SELECT tag_name FROM article_tags WHERE article_id = ?`
 	err := repo.db.Select(&tags, query, article_id)
@@ -77,19 +77,19 @@ func (repo ArticleRepo) GetArticleTags(article_id int64) ([]string, error) {
 	return tags, err
 }
 
-func (repo ArticleRepo) Update(ID int64, article *model.Article) error {
+func (repo *ArticleRepo) Update(ID int64, article *model.Article) error {
 	query := `UPDATE article SET title=?, description=?, body=?, updated_at=? WHERE id = ?`
 	_, err := repo.db.Exec(query, article.Title, article.Description, article.Body, article.UpdatedAt, ID)
 	return err
 }
 
-func (repo ArticleRepo) Delete(ID int64) error {
+func (repo *ArticleRepo) Delete(ID int64) error {
 	query := `DELETE FROM article WHERE id = ?`
 	_, err := repo.db.Exec(query, ID)
 	return err
 }
 
-func (repo ArticleRepo) CreateArticleTag(article_id int64, tag string) (int64, error) {
+func (repo *ArticleRepo) CreateArticleTag(article_id int64, tag string) (int64, error) {
 	query := `INSERT INTO article_tags (article_id, tag_name) VALUES(?, ?)`
 	result, err := repo.db.Exec(query, article_id, tag)
 	if err != nil {
@@ -100,25 +100,25 @@ func (repo ArticleRepo) CreateArticleTag(article_id int64, tag string) (int64, e
 	return id, err
 }
 
-func (repo ArticleRepo) DeleteArticleTag(article_id int64, tag string) error {
+func (repo *ArticleRepo) DeleteArticleTag(article_id int64, tag string) error {
 	query := `DELETE FROM article_tags WHERE article_id = ? and tag_name = ?`
 	_, err := repo.db.Exec(query, article_id, tag)
 	return err
 }
 
-func (repo ArticleRepo) Favorited(articleId int64, userId int64) error {
+func (repo *ArticleRepo) Favorited(articleId int64, userId int64) error {
 	query := `INSERT INTO favorites_article (article_id, user_id) VALUES(?, ?)`
 	_, err := repo.db.Exec(query, articleId, userId)
 	return err
 }
 
-func (repo ArticleRepo) Unfavorited(articleId int64, userId int64) error {
+func (repo *ArticleRepo) Unfavorited(articleId int64, userId int64) error {
 	query := `DELETE FROM favorites_article WHERE article_id = ? and user_id = ?`
 	_, err := repo.db.Exec(query, articleId, userId)
 	return err
 }
 
-func (repo ArticleRepo) List(limit int64, offset int64, tag *string, author *string, favorited *string) ([]*model.Article, int64, error) {
+func (repo *ArticleRepo) List(limit int64, offset int64, tag *string, author *string, favorited *string) ([]*model.Article, int64, error) {
 	var count int64 = 0
 	var articles []*model.Article
 	params := make(map[string]any)
@@ -185,7 +185,7 @@ func (repo ArticleRepo) List(limit int64, offset int64, tag *string, author *str
 	return articles, count, err
 }
 
-func (repo ArticleRepo) Feed(limit int64, offset int64, authors []int64) ([]*model.Article, int64, error) {
+func (repo *ArticleRepo) Feed(limit int64, offset int64, authors []int64) ([]*model.Article, int64, error) {
 	var count int64 = 0
 	var articles []*model.Article
 	params := make(map[string]any)

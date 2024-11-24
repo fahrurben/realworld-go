@@ -19,7 +19,7 @@ func NewTagRepo(db *database.DB) TagRepository {
 	return &TagRepo{db: db}
 }
 
-func (repo TagRepo) Create(tag string) (int64, error) {
+func (repo *TagRepo) Create(tag string) (int64, error) {
 	query := `INSERT INTO tag (name) VALUES(?)`
 	result, err := repo.db.Exec(query, tag)
 	if err != nil {
@@ -30,7 +30,7 @@ func (repo TagRepo) Create(tag string) (int64, error) {
 	return id, err
 }
 
-func (repo TagRepo) Get(name string) (*model.Tag, error) {
+func (repo *TagRepo) Get(name string) (*model.Tag, error) {
 	tag := model.Tag{}
 	query := `SELECT * FROM tag WHERE name = ?`
 	err := repo.db.Get(&tag, query, name)
@@ -38,7 +38,7 @@ func (repo TagRepo) Get(name string) (*model.Tag, error) {
 	return &tag, err
 }
 
-func (repo TagRepo) Delete(name string) error {
+func (repo *TagRepo) Delete(name string) error {
 	query := `DELETE tag WHERE name = ?`
 	_, err := repo.db.Exec(query, name)
 	return err

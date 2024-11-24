@@ -20,4 +20,7 @@ func Public(app *fiber.App) {
 	articleDetailsApi.Get("/", controller.GetArticle)
 	articleDetailsApi.Patch("/", controller.UpdateArticle)
 	articleDetailsApi.Delete("/", controller.DeleteArticle)
+
+	commentApi := app.Group("/api/articles/:slug/comments", middleware.JWTChecked())
+	commentApi.Post("/", controller.CreateComment)
 }
