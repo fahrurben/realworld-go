@@ -25,4 +25,7 @@ func Public(app *fiber.App) {
 	commentApi.Post("/", controller.CreateComment)
 	commentApi.Get("/", controller.GetComments)
 	commentApi.Delete("/:id", controller.DeleteComment)
+
+	tagsApi := app.Group("/api/tags")
+	tagsApi.Get("/", controller.ListTags)
 }

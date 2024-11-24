@@ -8,6 +8,7 @@ import (
 type TagRepository interface {
 	Create(tag string) (int64, error)
 	Get(name string) (*model.Tag, error)
+	List() ([]string, error)
 	Delete(name string) error
 }
 
@@ -42,4 +43,12 @@ func (repo *TagRepo) Delete(name string) error {
 	query := `DELETE tag WHERE name = ?`
 	_, err := repo.db.Exec(query, name)
 	return err
+}
+
+func (repo *TagRepo) List() ([]string, error) {
+	var tags []string
+	query := `SELECT name FROM tag ORDER BY name`
+	err := repo.db.Select(&tags, query)
+
+	return tags, err
 }
