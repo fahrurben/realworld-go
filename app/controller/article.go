@@ -436,3 +436,51 @@ func ListArticle(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"articles": articles, "articlesCount": articleCount})
 }
+
+func FeedArticle(c *fiber.Ctx) error {
+	var user_id int64 = 0
+	if token := c.Locals("user"); token != nil {
+		token := c.Locals("user").(*jwt.Token)
+		claims := token.Claims.(jwt.MapClaims)
+		user_id = int64(claims["user_id"].(float64))
+	} else {
+		return CreateErrorResponse(c, fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	offset, err := strconv.Atoi(c.Query("offset", "0"))
+
+	userRepo := repository.NewUserRepo(database.GetDB())
+	authors, err := userRepo.GetFollowings(user_id)
+
+	articleRepo := repository.NewArticleRepo(database.GetDB())
+	articles, articleCount, err := articleRepo.Feed(int64(limit), int64(offset), authors)
+
+	if err != nil {
+		return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	for _, article := range articles {
+		author, err := userRepo.Get(user_id)
+
+		articleTags, err := articleRepo.GetArticleTags(article.ID)
+		if err != nil {
+			return CreateErrorResponse(c, fiber.StatusUnprocessableEntity, err.Error())
+		}
+
+		isFollowing := false
+		if user_id > 0 {
+			isFollowing, _ = userRepo.IsFollowing(user_id, article.AuthorID)
+		}
+
+		article.Tags = articleTags
+		article.Author = &model.Author{
+			Username:  author.Username,
+			Bio:       author.Bio,
+			Image:     author.Image,
+			Following: isFollowing,
+		}
+	}
+
+	return c.JSON(fiber.Map{"articles": articles, "articlesCount": articleCount})
+}

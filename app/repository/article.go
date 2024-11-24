@@ -3,6 +3,8 @@ package repository
 import (
 	"github.com/fahrurben/realworld-go/app/model"
 	"github.com/fahrurben/realworld-go/platform/database"
+	"strconv"
+	"strings"
 )
 
 type ArticleRepository interface {
@@ -17,6 +19,7 @@ type ArticleRepository interface {
 	Favorited(articleId int64, userId int64) error
 	Unfavorited(articleId int64, userId int64) error
 	List(limit int64, offset int64, tag *string, author *string, favorited *string) ([]*model.Article, int64, error)
+	Feed(limit int64, offset int64, authors []int64) ([]*model.Article, int64, error)
 }
 
 type ArticleRepo struct {
@@ -160,6 +163,54 @@ func (repo ArticleRepo) List(limit int64, offset int64, tag *string, author *str
 		queryCount += " AND fau.username = :favorited"
 		params["favorited"] = *favorited
 	}
+
+	query += " ORDER BY article.created_at DESC LIMIT :limit OFFSET :offset"
+
+	statementTotal, err := repo.db.PrepareNamed(queryCount)
+	if err != nil {
+		return nil, 0, err
+	}
+	err = statementTotal.Get(&count, params)
+
+	statement, err := repo.db.PrepareNamed(query)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = statement.Select(&articles, params)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return articles, count, err
+}
+
+func (repo ArticleRepo) Feed(limit int64, offset int64, authors []int64) ([]*model.Article, int64, error) {
+	var count int64 = 0
+	var articles []*model.Article
+	params := make(map[string]any)
+	params["limit"] = limit
+	params["offset"] = offset
+	arrAuthor := []string{}
+	for _, author := range authors {
+		arrAuthor = append(arrAuthor, strconv.Itoa(int(author)))
+	}
+	params["authors"] = strings.Join(arrAuthor, ", ")
+
+	queryCount := `
+		SELECT 
+			COUNT(article.id)
+		FROM article
+		WHERE author_id IN (:authors)
+	`
+
+	query := `
+		SELECT 
+		    DISTINCT article.id,
+			article.*
+		FROM article
+		WHERE author_id IN (:authors)
+	`
 
 	query += " ORDER BY article.created_at DESC LIMIT :limit OFFSET :offset"
 

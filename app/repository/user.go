@@ -18,6 +18,7 @@ type UserRepository interface {
 	IsFollowing(user_id int64, follow_user_id int64) (bool, error)
 	Follow(user_id int64, follow_user_id int64) error
 	Unfollow(user_id int64, follow_user_id int64) error
+	GetFollowings(user_id int64) ([]int64, error)
 }
 
 type UserRepo struct {
@@ -123,4 +124,10 @@ func (repo *UserRepo) Unfollow(user_id int64, follow_user_id int64) error {
 	query := `DELETE FROM following WHERE user_id = ? and follow_user_id = ?`
 	_, err := repo.db.Exec(query, user_id, follow_user_id)
 	return err
+}
+
+func (repo *UserRepo) GetFollowings(user_id int64) ([]int64, error) {
+	var folows []int64
+	err := repo.db.Select(&folows, "SELECT follow_user_id FROM following WHERE user_id = ?", user_id)
+	return folows, err
 }
